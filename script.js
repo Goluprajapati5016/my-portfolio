@@ -252,49 +252,78 @@ function initializeSmoothScroll() {
    ========================================== */
 
 function initializeContactForm() {
-    const contactForm = document.getElementById('contactForm');
+    const contactForm = document.getElementById('contact-form');
 
-    if (contactForm) {
-        contactForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+    if (!contactForm) {
+        return;
+    }
 
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const message = document.getElementById('message').value;
+    const emailJsConfig = window.EMAILJS_CONFIG || {};
+    const isEmailJsReady =
+        window.emailjs &&
+        emailJsConfig.publicKey &&
+        emailJsConfig.serviceId &&
+        emailJsConfig.templateId &&
+        !emailJsConfig.publicKey.includes('YOUR_') &&
+        !emailJsConfig.serviceId.includes('YOUR_') &&
+        !emailJsConfig.templateId.includes('YOUR_');
 
-            // Validate form
-            if (!name || !email || !message) {
-                showNotification('Please fill in all fields', 'error');
-                return;
-            }
-
-            // Validate email
-            if (!isValidEmail(email)) {
-                showNotification('Please enter a valid email address', 'error');
-                return;
-            }
-
-            // Simulate form submission
-            const submitBtn = contactForm.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-
-            setTimeout(() => {
-                // Here you would normally send the data to a server
-                console.log({
-                    name: name,
-                    email: email,
-                    message: message
-                });
-
-                showNotification('Message sent successfully! I\'ll get back to you soon.', 'success');
-                contactForm.reset();
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }, 1500);
+    if (isEmailJsReady) {
+        emailjs.init({
+            publicKey: emailJsConfig.publicKey
         });
     }
+
+    contactForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const messageInput = document.getElementById('message');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+        const message = messageInput ? messageInput.value.trim() : '';
+
+        if (!name || !email || !message) {
+            showNotification('Please fill in all fields.', 'error');
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            showNotification('Please enter a valid email address.', 'error');
+            return;
+        }
+
+        if (!isEmailJsReady) {
+            showNotification('EmailJS setup incomplete hai. Public Key, Service ID aur Template ID add karne honge.', 'error');
+            return;
+        }
+
+        const submitBtn = contactForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        }
+
+        try {
+            await emailjs.sendForm(
+                emailJsConfig.serviceId,
+                emailJsConfig.templateId,
+                contactForm
+            );
+
+            showNotification('Message sent successfully! Main jaldi reply karunga.', 'success');
+            contactForm.reset();
+        } catch (error) {
+            console.error('EmailJS send failed:', error);
+            showNotification('Message send nahi hua. EmailJS keys ya template configuration check karein.', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Send Message';
+            }
+        }
+    });
 }
 
 function isValidEmail(email) {
