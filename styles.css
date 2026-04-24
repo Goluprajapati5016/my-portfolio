@@ -1610,6 +1610,18 @@ body.dark-mode .hero {
     width: 100%;
 }
 
+.contact-form button:disabled {
+    opacity: 0.8;
+    cursor: wait;
+}
+
+.form-note {
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
 .social-links {
     display: flex;
     justify-content: center;
